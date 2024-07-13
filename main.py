@@ -42,7 +42,7 @@ with st.form(key='word_form'):
         max_chars=500,
         placeholder="Write the meaning of the word"
     )
-
+ 
     st.file_uploader("Images", type=["png", "jpg", "heic", "pdf"], accept_multiple_files=True)
 
     for i, sentence in enumerate(st.session_state.sentence_inputs):
