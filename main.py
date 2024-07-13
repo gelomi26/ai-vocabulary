@@ -12,9 +12,8 @@ def add_sentence_input():
 if "sentence_inputs" not in st.session_state:
     st.session_state.sentence_inputs = [""]  # Initialize with one empty input
 
-# # Initialize session state for validation message
-# if "validation_message" not in st.session_state:
-#     st.session_state.validation_message = ""
+if "generated_info" not in st.session_state:
+    st.session_state.generated_info = None
 
 # Form for word input and actions
 with st.form(key='word_form'):
@@ -29,22 +28,29 @@ with st.form(key='word_form'):
         )
 
     with col2:
-        st.form_submit_button(label="Generate")
+        generate_button = st.form_submit_button(label="Generate")
 
     input_pronunciation = st.text_input(
         label="Pronunciation",
+        value=st.session_state.generated_info.get("pronunciation", "") if st.session_state.generated_info else "",
         max_chars=75,
         placeholder="Write the pronunciation of the word"
     )
 
     input_meaning = st.text_area(
         label="Meaning",
+        value=st.session_state.generated_info.get("meaning", "") if st.session_state.generated_info else "",
         max_chars=500,
         placeholder="Write the meaning of the word"
     )
  
-    st.file_uploader("Images", type=["png", "jpg", "heic", "pdf"], accept_multiple_files=True)
+    st.file_uploader(
+        "Images",
+        type=["png", "jpg", "heic", "pdf"],
+        accept_multiple_files=True)
 
+    # Use generated sentences if available, otherwise use the existing inputs
+    sentences = st.session_state.generated_info["sentences"] if st.session_state.generated_info else st.session_state.sentence_inputs
     for i, sentence in enumerate(st.session_state.sentence_inputs):
         st.session_state.sentence_inputs[i] = st.text_input(
             f"Sentence {i + 1}",
@@ -57,13 +63,25 @@ with st.form(key='word_form'):
         add_sentence_input()
 
     submitted = st.form_submit_button(label="Save")
-    # Validation logic moved outside the form
-    if submitted:
-        if not input_word:
-            st.warning("Word field cannot be empty.")
-        elif not input_meaning:
-            st.warning("Meaning field cannot be empty.")
-        elif not all(sentence for sentence in st.session_state.sentence_inputs):
-            st.warning("All sentence fields must be filled.")
+
+# Handle generate button
+if generate_button and input_word:
+    with st.spinner("Generating word information..."):
+        generated_info = lch.generate_word_info(input_word)
+        if "error" not in generated_info:
+            st.session_state.generated_info = generated_info
+            st.experimental_rerun()
         else:
-            st.success("Form submitted successfully!")
+            st.warning("Failed to generate word information. Please try again.")
+
+
+# Validation logic moved outside the form
+if submitted:
+    if not input_word:
+        st.warning("Word field cannot be empty.")
+    elif not input_meaning:
+        st.warning("Meaning field cannot be empty.")
+    elif not all(sentence for sentence in st.session_state.sentence_inputs):
+        st.warning("All sentence fields must be filled.")
+    else:
+        st.success("Form submitted successfully!")
